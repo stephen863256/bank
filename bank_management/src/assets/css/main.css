@@ -1,0 +1,42 @@
+/* 全局 CSS 样式 */
+
+body {
+    font-family: Arial, sans-serif;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    color: #333;
+  }
+  
+  p {
+    margin-bottom: 1em;
+  }
+  
+  a {
+    color: #1a0dab;
+    text-decoration: none;
+  }
+  
+  a:hover {
+    color: #8314cc;
+  }
+  
+  ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+  
+  ul li {
+    margin-bottom: 10px;
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
