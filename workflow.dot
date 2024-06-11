@@ -1,0 +1,9 @@
+digraph G {
+    rankdir=LR;
+    node [shape=box];
+    User -> "Frontend System" -> "Axios Request" -> "Django View" -> "Django Model" -> Database;
+    Database -> "Django Model" -> "Django View" -> "JsonResponse" -> "Axios Response" -> "Frontend System" -> User;
+    "Axios Request" [shape=ellipse];
+    "JsonResponse" [shape=ellipse];
+    "Axios Response" [shape=ellipse];
+}

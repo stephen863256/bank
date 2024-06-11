@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'bank_management',
+    'django_extensions',
     'rest_framework',
     'django_filters',
     'corsheaders',

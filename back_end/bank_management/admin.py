@@ -39,7 +39,7 @@ class CreditAccountAdmin(admin.ModelAdmin):
     list_per_page = 50
 
 class LoanAdmin(admin.ModelAdmin):
-    list_display = ('loanId', 'repaymentAmount', 'amount', 'interestRate', 'loanDate', 'loanStatus', 'branchIssued', 'clientId',)
+    list_display = ('loanId', 'repaymentAmount', 'amount', 'interestRate', 'loanDate','loanDays','loanStatus', 'branchIssued', 'clientId',)
     list_display_links = ('loanId',)
     list_per_page = 50
 
