@@ -13,9 +13,9 @@ import jwt
 from django.conf import settings
 import json
 from django.core.paginator import Paginator
-import datetime
 from decimal import Decimal
 from datetime import datetime
+import datetime
 import os
 def authenticate(request, username, password):
     try:
@@ -39,6 +39,7 @@ def login(request):
             payload = {
                 'id': user.id,
                 'username': user.username,
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30) 
             }
             token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
             print(token)

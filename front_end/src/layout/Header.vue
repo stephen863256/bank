@@ -21,36 +21,40 @@
     </el-header>
   </template>
   
-<script>
-import router from '@/router';
-import store from '@/store';
-import { ArrowDown } from '@element-plus/icons-vue'
+  <script>
+  import { computed } from 'vue';
+  import { useStore } from 'vuex';
+  import router from '@/router';
+  import { ArrowDown } from '@element-plus/icons-vue'
   
   export default {
     name: 'AppHeader',
     components: {
       ArrowDown
     },
-    data() {
-      return {
-        username: JSON.parse(sessionStorage.getItem('user')).username,
-        avatar :sessionStorage.getItem('avatar')
-      }
-    },
-    methods: {
-      handleUserCenter() {
-        // TODO: 添加用户中心的处理逻辑
+    setup() {
+      const store = useStore();
+      const username = computed(() => store.state.user?.username);
+      const avatar = sessionStorage.getItem('avatar');
+  
+      const handleUserCenter = () => {
         console.log('用户中心被点击');
-        console.log(store.state.user)
         router.push('/usercenter')
-      },
-      handleLogout() {
+      };
+  
+      const handleLogout = () => {
         console.log('退出登录被点击');
         store.dispatch('clearUser');
         sessionStorage.clear();
         router.replace('/login')
-      },
+      };
   
+      return {
+        username,
+        avatar,
+        handleUserCenter,
+        handleLogout
+      };
     }
   }
   </script>

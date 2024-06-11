@@ -76,14 +76,13 @@
                 ElMessage.success('登录成功');
                 console.log('Login successful')
                 let userDetails = {
-                    role:  username === 'admin' ? 'admin' : 'user',
                     username: username,
                     password: password,
                 }
                 store.dispatch('setUser', userDetails)
                 sessionStorage.setItem('avatar', response.data.avatar)
                 sessionStorage.setItem('token', response.data.token)
-                sessionStorage.setItem('user', JSON.stringify(userDetails))
+                //sessionStorage.setItem('user', JSON.stringify(userDetails))
                 router.replace('/Layout')
               }
             } catch (error) {
