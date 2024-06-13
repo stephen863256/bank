@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             '''
-            CREATE TRIGGER calculate_interest_after_insert_on_transaction
+            CREATE TRIGGER calculate_balance_after_insert_on_transaction
             AFTER INSERT ON bank_management_transaction
             FOR EACH ROW
             BEGIN

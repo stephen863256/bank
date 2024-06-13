@@ -14,8 +14,8 @@ from django.conf import settings
 import json
 from django.core.paginator import Paginator
 from decimal import Decimal
-from datetime import datetime
-import datetime
+from datetime import datetime,timedelta
+
 import os
 def authenticate(request, username, password):
     try:
@@ -39,7 +39,7 @@ def login(request):
             payload = {
                 'id': user.id,
                 'username': user.username,
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30) 
+                'exp': datetime.utcnow() + timedelta(minutes=30) 
             }
             token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
             print(token)
@@ -49,10 +49,10 @@ def login(request):
             return JsonResponse({'message': 'Login successful', 'token': token, 'avatar': avatar_url})
         else:
             # 登录失败，返回失败的响应
-            return JsonResponse({'message': 'Login failed','code':'401'}, status=401)
+            return JsonResponse({'message': 'Login failed','code':'401'})
     else:
         # 不正确的请求方法，返回错误的响应
-        return JsonResponse({'message': 'Invalid request method','code':'405'}, status=405)
+        return JsonResponse({'message': 'Invalid request method','code':'405'})
 
 def validate_id_card(id_card):
     if len(id_card) != 18:
@@ -133,6 +133,11 @@ class UserViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return JsonResponse({'code': 404, 'message': 'User not found'})
 
+        if len(data['password']) < 6:
+            return JsonResponse({'code': 400, 'message': 'Password must be at least 6 characters'})
+        if len(data['password']) > 20:
+            return JsonResponse({'code': 400, 'message': 'Password must be at most 20 characters'})
+        
         user.password = data['password']
         user.save()
         return JsonResponse({'code': 200, 'message': 'success'})
@@ -157,7 +162,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if(User.objects.filter(username=username).exists()):
             return JsonResponse({'code': 400, 'message': 'User already exists'})
-
+        if len(data['password']) < 6:
+            return JsonResponse({'code': 400, 'message': 'Password must be at least 6 characters'})
+        if len(data['password']) > 20:
+            return JsonResponse({'code': 400, 'message': 'Password must be at most 20 characters'})
         user = User(username=username, password=password)
         user.save()
         return JsonResponse({'code': 200, 'message': 'success'})
@@ -305,6 +313,9 @@ class BranchViewSet(viewsets.ModelViewSet):
         if(Branch.objects.filter(branchName=branchName).exists()):
             return JsonResponse({'code': 400, 'message': 'Branch already exists'})
 
+        if totalAssets < 0:
+            return JsonResponse({'code': 400, 'message': 'Wrong totalAssets'})
+        
         branch = Branch(branchName=branchName, location=location, totalAssets=totalAssets)
         branch.save()
         return JsonResponse({'code': 200, 'message': 'success'})
@@ -430,6 +441,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
             department.manager = manager
             manager.departmentId = department
             manager.salary = manager.salary + 3000
+            manager.branchId = department.branchId
             manager.position = 'Manager'
             manager.save()
 
@@ -473,13 +485,18 @@ class DepartmentViewSet(viewsets.ModelViewSet):
                 return JsonResponse({'code': 404, 'message': 'Employee not found'})
 
         if manager != None:
+            if manager.position == 'Manager':
+                return JsonResponse({'code': 400, 'message': 'No two departments can have the same manager'})
             manager.position = 'Manager'
-            manager.departmentId = department
             manager.salary = manager.salary + 3000
             manager.save()
 
         department = Department(departmentId=departmentId, departmentName=departmentName, branchId=branch, manager=manager)
         department.save()
+
+        manager.departmentId = department
+        manager.branchId = branch
+        manager.save()
         return JsonResponse({'code': 200, 'message': 'success'})
     
 
@@ -960,7 +977,7 @@ class SavingsAccountViewSet(viewsets.ModelViewSet):
         balance += interest
         savingsAccount = SavingsAccount(branchCode=branch, idNumber=client, password=password, openDate=openingDate, balance=balance, interestRate=interestRate)
         savingsAccount.save()
-
+        branch.totalAssets -= interest
         return JsonResponse({'code': 200, 'message': 'success'})
     
     @csrf_exempt
@@ -1084,12 +1101,12 @@ class SavingsAccountViewSet(viewsets.ModelViewSet):
         #targetSavingsAccount.balance += Decimal(data['amount'])
        # targetSavingsAccount.save()
 
-        transaction = Transaction(savingsAccount=savingsAccount,transactionDate=data['transactionDate'], transactionType='Transfer', amount=data['amount'])
+        transaction = Transaction(savingsAccount=savingsAccount,transactionDate=data['transactionDate'], transactionType='TRANSFER', amount=data['amount'])
         transaction.save()
        # savingsAccount.lastTransaction = transaction
        # savingsAccount.save()
 
-        transaction = Transaction(savingsAccount=targetSavingsAccount,transactionDate=data['transactionDate'], transactionType='Income', amount=data['amount'])
+        transaction = Transaction(savingsAccount=targetSavingsAccount,transactionDate=data['transactionDate'], transactionType='INCOME', amount=data['amount'])
         transaction.save()
       #  targetSavingsAccount.lastTransaction = transaction
       #  targetSavingsAccount.save()
@@ -1243,6 +1260,7 @@ class CreditAccountViewSet(viewsets.ModelViewSet):
     
     @csrf_exempt
     @action(detail=False, methods=['put'])
+    @transaction.atomic
     def repay(self, request):
         token = request.META.get('HTTP_TOKEN')
 
@@ -1279,6 +1297,7 @@ class CreditAccountViewSet(viewsets.ModelViewSet):
     
     @csrf_exempt
     @action(detail=False, methods=['put'])
+    @transaction.atomic
     def consume(self, request):
         token = request.META.get('HTTP_TOKEN')
 
@@ -1442,6 +1461,7 @@ class LoanViewSet(viewsets.ModelViewSet):
     
     @csrf_exempt
     @action(detail=False, methods=['put'])
+    @transaction.atomic
     def repay(self, request):
         token = request.META.get('HTTP_TOKEN')
         try:
@@ -1472,7 +1492,9 @@ class LoanViewSet(viewsets.ModelViewSet):
         if(loan.repaymentAmount == loan.amount + loan.interest):
             loan.loanStatus = 'PAID_OFF'
         loan.save()
+        print(data['repaymentDate'])
         repaymentDate = datetime.strptime(data['repaymentDate'],  '%Y-%m-%dT%H:%M:%S.%fZ').date()
+        
         repayment = Repayment(loanId=loan, repaymentAmount=Decimal(data['amount']), repaymentDate=repaymentDate)
         repayment.save()
 
